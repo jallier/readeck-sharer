@@ -24,6 +24,21 @@
 
         </activity>
 
+        <!-- Do not change this android:name, otherwise your application will crash -->
+        <activity
+            android:name="de.mindlib.sendIntent.SendIntentActivity" 
+            android:label="@string/app_name"
+            android:exported="true"
+            android:theme="@style/AppTheme.NoActionBar">
+            <intent-filter>
+                <action android:name="android.intent.action.SEND" />
+                <category android:name="android.intent.category.DEFAULT" />
+
+                <!-- We only want links -->
+                <data android:mimeType="text/plain" />
+            </intent-filter>
+        </activity>
+
         <provider
             android:name="androidx.core.content.FileProvider"
             android:authorities="${applicationId}.fileprovider"
