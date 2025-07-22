@@ -1,24 +1,15 @@
 <script lang="ts">
 	import { page } from '$app/state';
-	import { Preferences } from '@capacitor/preferences';
 	import { SendIntent } from 'send-intent';
 	import ReadeckApi from '$lib/ReadeckApi';
+	import { getPreferences } from '$lib/preferences';
 
-	const url = page.url.searchParams.get('url') || '';
-	const title = page.url.searchParams.get('title') || '';
+	let url = $state(page.url.searchParams.get('url') || '');
+	let title = $state(page.url.searchParams.get('title') || '');
 
 	async function handleSave() {
 		console.log('Save clicked! URL:', url, title);
-		let serverUrl = '';
-		let apiToken = '';
-		const serverUrlResult = await Preferences.get({ key: 'serverUrl' });
-		if (serverUrlResult.value) {
-			serverUrl = serverUrlResult.value;
-		}
-		const apiTokenResult = await Preferences.get({ key: 'apiToken' });
-		if (apiTokenResult.value) {
-			apiToken = apiTokenResult.value;
-		}
+		const { serverUrl, apiToken } = await getPreferences();
 
 		if (!serverUrl || !apiToken) {
 			alert('Please set your server URL and API token in settings.');
@@ -31,7 +22,6 @@
 			const response = await api.bookmark(bookmarkData);
 			if (response) {
 				alert('Bookmark saved successfully!');
-				// window.location.href = '/';
 				// Finish the intent, since we're done
 				SendIntent.finish();
 			} else {
@@ -54,15 +44,26 @@
 				<input
 					id="url"
 					type="url"
-					value={url}
+					bind:value={url}
 					readonly
 					class="w-full rounded-md border border-gray-300 bg-gray-50 px-3 py-2 text-sm text-gray-600"
 					placeholder="No URL provided"
 				/>
 			</div>
 
+			<div class="mb-6">
+				<label for="title" class="mb-2 block text-sm font-medium text-gray-700">Title</label>
+				<input
+					id="title"
+					type="text"
+					bind:value={title}
+					class="w-full rounded-md border border-gray-300 bg-gray-50 px-3 py-2 text-sm text-gray-600"
+					placeholder="No title provided"
+				/>
+			</div>
+
 			<button
-				on:click={handleSave}
+				onclick={handleSave}
 				class="w-full rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50"
 				disabled={!url}
 			>
