@@ -37,7 +37,13 @@ class ReadeckApi {
 		this.timeout = config.timeout || 5000;
 	}
 
-	// Private method for making HTTP requests
+	/**
+	 * Makes an HTTP request to the Readeck API.
+	 * We return the raw response object to allow the caller access to the headers, as Readeck API uses headers to return data in some cases
+	 * @param endpoint API endpoint to request
+	 * @param options Fetch API options
+	 * @returns Response object
+	 */
 	private async request(endpoint: string, options: RequestInit = {}): Promise<Response> {
 		const url = `${this.baseUrl}/api${endpoint}`;
 		const headers = {
@@ -55,27 +61,34 @@ class ReadeckApi {
 
 			if (!response.ok) {
 				const errorText = await response.text();
-        console.error(`API Error: ${response.status} - ${errorText}`);
+				console.error(`API Error: ${response.status} - ${errorText}`);
 				throw new Error(`API Error: ${response.status} - ${errorText || response.statusText}`);
 			}
 
 			return await response;
 		} catch (error) {
 			if (error instanceof Error) {
-        console.error(`Request failed: ${error.message}`);
+				console.error(`Request failed: ${error.message}`);
 				throw new Error(`Request failed: ${error.message}`);
 			}
-      console.error('Unknown error occurred during request:', error);
+			console.error('Unknown error occurred during request:', error);
 			throw error;
 		}
 	}
 
-	// Get user profile
+	/**
+	 * Get the users profile
+	 * @returns User profile information
+	 */
 	async profile(): Promise<ProfileResponse> {
 		return (await this.request('/profile', { method: 'GET' })).json();
 	}
 
-	// Create a new bookmark
+	/**
+	 * Create a new bookmark
+	 * @param bookmarkData Data for the bookmark to create
+	 * @returns BookmarkResponse containing the bookmark ID or an error message
+	 */
 	async bookmark(bookmarkData: BookmarkRequest): Promise<BookmarkResponse> {
 		const response = await this.request('/bookmarks', {
 			method: 'POST',
@@ -93,7 +106,7 @@ class ReadeckApi {
 		}
 
 		return {
-			bookmarkId,
+			bookmarkId
 		};
 	}
 }

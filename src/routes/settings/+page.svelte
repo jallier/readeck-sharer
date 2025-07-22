@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { Preferences } from '@capacitor/preferences';
 	import ReadeckApi from '$lib/ReadeckApi';
+import { getPreferences, setPreferences } from '$lib/preferences';
 
 	type SaveStatus = 'success' | 'error' | 'cleared' | 'network-error' | '';
 
@@ -10,22 +11,15 @@
 	let saveStatus = $state<SaveStatus>('');
 
 	// Load the saved API token when component mounts
-	$effect(() => {
-		loadApiToken();
-	});
-
+			loadApiToken();
+	
 	async function loadApiToken() {
 		try {
-			const serverUrlResult = await Preferences.get({ key: 'serverUrl' });
-			if (serverUrlResult.value) {
-				serverUrl = serverUrlResult.value;
-			}
-			const apiTokenResult = await Preferences.get({ key: 'apiToken' });
-			if (apiTokenResult.value) {
-				apiToken = apiTokenResult.value;
-			}
+			const preferences = await getPreferences();
+			apiToken = preferences.apiToken;
+			serverUrl = preferences.serverUrl;
 		} catch (error) {
-			console.error('Error loading API token:', error);
+			console.error('Error loading preferences token:', error);
 		}
 	}
 
@@ -78,14 +72,9 @@
 		}
 
 		try {
-			await Preferences.set({
-				key: 'apiToken',
-				value: apiToken.trim()
-			});
-
-			await Preferences.set({
-				key: 'serverUrl',
-				value: serverUrl.trim()
+			await setPreferences({
+				apiToken: apiToken.trim(),
+				serverUrl: serverUrl.trim()
 			});
 
 			saveStatus = 'success';

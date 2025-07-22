@@ -3,4 +3,5 @@
 - [ ] get a proper icon and splash screen
 - [ ] build for release
 - [ ] allow login with user credentials instead of requiring an API token
+- [ ] page transitions
 
