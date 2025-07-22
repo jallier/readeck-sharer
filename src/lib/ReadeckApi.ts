@@ -1,3 +1,7 @@
+/*
+ * Simple interfaces for the api. Note that these are not complete and only cover the endpoints used in the app.
+ */
+
 interface ReadeckConfig {
 	baseUrl: string;
 	apiKey: string;
@@ -11,20 +15,19 @@ interface ProfileResponse {
 	};
 }
 
-interface BookmarkRequest {
+interface CreateBookmarkRequest {
 	url: string;
 	title?: string;
 	labels?: string[];
 }
 
-type BookmarkResponse =
-	| {
-			message: string;
-			status: number;
-	  }
-	| {
-			bookmarkId: string;
-	  };
+interface CreateBookmarkResponse {
+	bookmarkId: string;
+}
+
+interface GetBookmarkResponse {
+	loaded: boolean;
+}
 
 class ReadeckApi {
 	private baseUrl: string;
@@ -89,7 +92,7 @@ class ReadeckApi {
 	 * @param bookmarkData Data for the bookmark to create
 	 * @returns BookmarkResponse containing the bookmark ID or an error message
 	 */
-	async bookmark(bookmarkData: BookmarkRequest): Promise<BookmarkResponse> {
+	async createBookmark(bookmarkData: CreateBookmarkRequest): Promise<CreateBookmarkResponse> {
 		const response = await this.request('/bookmarks', {
 			method: 'POST',
 			body: JSON.stringify(bookmarkData)
@@ -109,7 +112,25 @@ class ReadeckApi {
 			bookmarkId
 		};
 	}
+
+	async getBookmark(bookmarkId: string): Promise<GetBookmarkResponse> {
+		const response = await this.request(`/bookmarks/${bookmarkId}`);
+
+		if (response.status !== 200) {
+			throw new Error(`Failed to check bookmark: ${response.statusText}`);
+		}
+
+		const data: GetBookmarkResponse = await response.json();
+
+		return data;
+	}
 }
 
 export default ReadeckApi;
-export type { ReadeckConfig, ProfileResponse, BookmarkRequest, BookmarkResponse };
+export type {
+	ReadeckConfig,
+	ProfileResponse,
+	CreateBookmarkRequest,
+	CreateBookmarkResponse,
+	GetBookmarkResponse
+};
