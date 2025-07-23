@@ -5,7 +5,7 @@
 - [x] BUG: allow hitting back button from share screen
 - [x] update countdown live after share
 - [x] rewrite readme to describe project correctly
-- [ ] allow login with user credentials instead of requiring an API token
+- [x] allow login with user credentials instead of requiring an API token
 - [ ] add setting for wait for scrape or immediate return when saving the article
 - [ ] page transitions
 - [ ] overhaul styles to match the main app

@@ -4,7 +4,7 @@
 
 interface ReadeckConfig {
 	baseUrl: string;
-	apiKey: string;
+	apiKey?: string;
 	timeout?: number;
 }
 
@@ -29,15 +29,134 @@ interface GetBookmarkResponse {
 	loaded: boolean;
 }
 
+interface LoginRequest {
+	username: string;
+	password: string;
+	application: string;
+}
+
+interface LoginResponse {
+	id: string;
+	token: string;
+}
+
 class ReadeckApi {
 	private baseUrl: string;
-	private apiKey: string;
+	private apiKey: string | undefined;
 	private timeout: number;
 
 	constructor(config: ReadeckConfig) {
 		this.baseUrl = config.baseUrl.replace(/\/$/, ''); // Remove trailing slash
 		this.apiKey = config.apiKey;
 		this.timeout = config.timeout || 5000;
+	}
+
+	/**
+	 * Static method to login with username and password to get an API token
+	 * This doesn't require an existing instance since it's used to obtain the token
+	 * @param baseUrl The base URL of the Readeck server
+	 * @param username User's username
+	 * @param password User's password
+	 * @param application Application name for the token (optional)
+	 * @param timeout Request timeout in milliseconds (optional)
+	 * @returns Login response containing the token
+	 */
+	static async login(
+		baseUrl: string,
+		username: string,
+		password: string,
+		application: string = 'Readeck Sharer',
+		timeout: number = 5000
+	): Promise<LoginResponse> {
+		const loginData: LoginRequest = {
+			username,
+			password,
+			application
+		};
+
+		const url = `${baseUrl.replace(/\/$/, '')}/api/auth`;
+
+		try {
+			const response = await fetch(url, {
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/json',
+					Accept: 'application/json'
+				},
+				body: JSON.stringify(loginData),
+				signal: AbortSignal.timeout(timeout)
+			});
+
+			if (!response.ok) {
+				const errorText = await response.text();
+				console.error(`Login Error: ${response.status} - ${errorText}`);
+				throw new Error(`Login failed: ${response.status} - ${errorText || response.statusText}`);
+			}
+
+			const result: LoginResponse = await response.json();
+			return result;
+		} catch (error) {
+			if (error instanceof Error) {
+				console.error(`Login failed: ${error.message}`);
+				throw new Error(`Login failed: ${error.message}`);
+			}
+			console.error('Unknown error occurred during login:', error);
+			throw error;
+		}
+	}
+
+	/**
+	 * Instance method to login with username and password to get an API token
+	 * Updates this instance's API key upon successful login
+	 * @param username User's username
+	 * @param password User's password
+	 * @param application Application name for the token (optional)
+	 * @returns Login response containing the token
+	 */
+	async login(
+		username: string,
+		password: string,
+		application: string = 'Readeck Sharer'
+	): Promise<LoginResponse> {
+		const loginData: LoginRequest = {
+			username,
+			password,
+			application
+		};
+
+		const url = `${this.baseUrl}/api/auth`;
+
+		try {
+			const response = await fetch(url, {
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/json',
+					Accept: 'application/json'
+				},
+				body: JSON.stringify(loginData),
+				signal: AbortSignal.timeout(this.timeout)
+			});
+
+			if (!response.ok) {
+				const errorText = await response.text();
+				console.error(`Login Error: ${response.status} - ${errorText}`);
+				throw new Error(`Login failed: ${response.status} - ${errorText || response.statusText}`);
+			}
+
+			const result: LoginResponse = await response.json();
+
+			// Set the API key for future requests
+			this.apiKey = result.token;
+
+			return result;
+		} catch (error) {
+			if (error instanceof Error) {
+				console.error(`Login failed: ${error.message}`);
+				throw new Error(`Login failed: ${error.message}`);
+			}
+			console.error('Unknown error occurred during login:', error);
+			throw error;
+		}
 	}
 
 	/**
@@ -132,5 +251,7 @@ export type {
 	ProfileResponse,
 	CreateBookmarkRequest,
 	CreateBookmarkResponse,
-	GetBookmarkResponse
+	GetBookmarkResponse,
+	LoginRequest,
+	LoginResponse
 };

@@ -45,7 +45,7 @@
 					/>
 				</div>
 				<h1 class="mb-2 text-3xl font-bold text-gray-900">Readeck Sharer</h1>
-				<p class="text-lg text-gray-600">Share articles and links to your Readeck library</p>
+				<p class="text-lg text-gray-600">Share articles and links to your Readeck library via the share menu</p>
 			</div>
 
 			<!-- Settings Button -->
