@@ -12,7 +12,8 @@
 		"check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
 		"format": "prettier --write .",
 		"lint": "prettier --check . && eslint .",
-		"app:run": "npm run build && npx cap sync && npx cap run android"
+		"app:run": "npm run build && npx cap sync && npx cap run android",
+		"build:android:release": "npm run build && npx cap sync android && cd android && ./gradlew assembleRelease"
 	},
 	"devDependencies": {
 		"@capacitor/assets": "^3.0.5",
