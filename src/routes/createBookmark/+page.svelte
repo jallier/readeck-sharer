@@ -14,6 +14,7 @@
 
 	let saveState = $state<SaveState>('ready');
 	let hasCredentials = $state<boolean | null>(null); // null = checking, true = has creds, false = missing creds
+	let countdown = $state(3); // Countdown timer for when done
 
 	function handleBack() {
 		// If we're in the middle of saving, don't allow going back
@@ -83,10 +84,15 @@
 						setTimeout(() => checkBookmarkLoaded(), 1000);
 					} else {
 						saveState = 'done';
-						// Finish the intent, since we're done
-						setTimeout(() => {
-							SendIntent.finish();
-						}, 3000);
+						// Start countdown and finish the intent when it reaches 0
+						countdown = 3;
+						const countdownInterval = setInterval(() => {
+							countdown--;
+							if (countdown <= 0) {
+								clearInterval(countdownInterval);
+								SendIntent.finish();
+							}
+						}, 1000);
 					}
 				};
 
@@ -241,7 +247,7 @@
 								</svg>
 							</div>
 							<span class="text-sm font-medium text-green-700">
-								Bookmark saved successfully! Page will close in 3s
+								Bookmark saved successfully! Page will close in {countdown}s
 							</span>
 						{/if}
 					</div>

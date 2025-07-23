@@ -3,7 +3,7 @@
 - [x] get a proper icon and splash screen
 - [x] build for release
 - [x] BUG: allow hitting back button from share screen
-- [ ] update countdown live after share
+- [x] update countdown live after share
 - [ ] rewrite readme to describe project correctly
 - [ ] allow login with user credentials instead of requiring an API token
 - [ ] add setting for wait for scrape or immediate return when saving the article
