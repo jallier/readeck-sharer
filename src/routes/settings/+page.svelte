@@ -11,6 +11,7 @@
 	let serverUrl = $state('');
 	let username = $state('');
 	let password = $state('');
+	let waitForScrape = $state(true);
 	let isLoading = $state(false);
 	let saveStatus = $state<SaveStatus>('');
 
@@ -25,6 +26,7 @@
 			username = preferences.username || '';
 			password = preferences.password || '';
 			authMethod = preferences.authMethod || 'token';
+			waitForScrape = preferences.waitForScrape ?? true;
 		} catch (error) {
 			console.error('Error loading preferences:', error);
 		}
@@ -82,15 +84,35 @@
 					return;
 				}
 
-				// Login to get token
-				const token = await loginWithCredentials(serverUrl, username, password);
-				if (!token) {
-					saveStatus = 'login-error';
-					isLoading = false;
-					setTimeout(() => (saveStatus = ''), 3000);
-					return;
+				// Only login if we don't have a token or if the existing token doesn't work
+				if (!apiToken.trim()) {
+					// No existing token, need to login
+					const token = await loginWithCredentials(serverUrl, username, password);
+					if (!token) {
+						saveStatus = 'login-error';
+						isLoading = false;
+						setTimeout(() => (saveStatus = ''), 3000);
+						return;
+					}
+					finalToken = token;
+				} else {
+					// We have a token, check if it's still valid first
+					const isCurrentTokenValid = await checkCredentials(serverUrl, apiToken);
+					if (isCurrentTokenValid) {
+						// Existing token works, use it
+						finalToken = apiToken;
+					} else {
+						// Existing token doesn't work, login to get a new one
+						const token = await loginWithCredentials(serverUrl, username, password);
+						if (!token) {
+							saveStatus = 'login-error';
+							isLoading = false;
+							setTimeout(() => (saveStatus = ''), 3000);
+							return;
+						}
+						finalToken = token;
+					}
 				}
-				finalToken = token;
 			} else {
 				// Token method
 				if (!apiToken.trim()) {
@@ -101,13 +123,16 @@
 				}
 			}
 
-			// Verify the token works
-			const isValid = await checkCredentials(serverUrl, finalToken);
-			if (!isValid) {
-				saveStatus = 'network-error';
-				isLoading = false;
-				setTimeout(() => (saveStatus = ''), 3000);
-				return;
+			// Verify the token works (only needed for direct token method,
+			// credentials method already validated the token above)
+			if (authMethod === 'token') {
+				const isValid = await checkCredentials(serverUrl, finalToken);
+				if (!isValid) {
+					saveStatus = 'network-error';
+					isLoading = false;
+					setTimeout(() => (saveStatus = ''), 3000);
+					return;
+				}
 			}
 
 			// Save preferences
@@ -115,6 +140,7 @@
 				serverUrl: serverUrl.trim(),
 				apiToken: finalToken,
 				authMethod,
+				waitForScrape,
 				...(authMethod === 'credentials' && {
 					username: username.trim(),
 					password: password.trim()
@@ -147,13 +173,15 @@
 				Preferences.remove({ key: 'apiToken' }),
 				Preferences.remove({ key: 'username' }),
 				Preferences.remove({ key: 'password' }),
-				Preferences.remove({ key: 'authMethod' })
+				Preferences.remove({ key: 'authMethod' }),
+				Preferences.remove({ key: 'waitForScrape' })
 			]);
 
 			apiToken = '';
 			username = '';
 			password = '';
 			authMethod = 'token';
+			waitForScrape = true;
 			saveStatus = 'cleared';
 			console.log('Settings cleared');
 		} catch (error) {
@@ -289,6 +317,44 @@
 				</div>
 			{/if}
 
+			<!-- Bookmark Behavior Setting -->
+			<div class="mb-6">
+				<fieldset>
+					<legend class="mb-3 block text-sm font-medium text-gray-700"> Bookmark Behavior </legend>
+					<div class="flex space-x-1 rounded-lg bg-gray-100 p-1">
+						<button
+							type="button"
+							onclick={() => (waitForScrape = true)}
+							class="flex-1 rounded-md px-3 py-2 text-sm font-medium transition-colors {waitForScrape
+								? 'bg-white text-gray-900 shadow-sm'
+								: 'text-gray-500 hover:text-gray-700'}"
+							disabled={isLoading}
+						>
+							Wait for Processing
+						</button>
+						<button
+							type="button"
+							onclick={() => (waitForScrape = false)}
+							class="flex-1 rounded-md px-3 py-2 text-sm font-medium transition-colors {!waitForScrape
+								? 'bg-white text-gray-900 shadow-sm'
+								: 'text-gray-500 hover:text-gray-700'}"
+							disabled={isLoading}
+						>
+							Return Immediately
+						</button>
+					</div>
+					<p class="mt-2 text-xs text-gray-500">
+						{#if waitForScrape}
+							<strong>Wait for Processing:</strong> The app will wait for Readeck to finish processing
+							the article content before completing the save operation.
+						{:else}
+							<strong>Return Immediately:</strong> The app will return as soon as the bookmark is created,
+							without waiting for content processing to finish.
+						{/if}
+					</p>
+				</fieldset>
+			</div>
+
 			<!-- Status Messages -->
 			{#if saveStatus === 'success'}
 				<div class="mb-4 rounded-md bg-green-50 p-3">
@@ -346,8 +412,8 @@
 		<div class="mt-6 rounded-lg bg-white p-6 shadow-md">
 			<h2 class="mb-4 text-lg font-semibold text-gray-900">About</h2>
 			<p class="text-sm text-gray-600">
-				You can authenticate using either your username and password, or by
-				entering an API token directly.
+				You can authenticate using either your username and password, or by entering an API token
+				directly.
 			</p>
 			{#if authMethod === 'credentials'}
 				<p class="mt-2 text-sm text-gray-600">

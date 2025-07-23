@@ -15,6 +15,7 @@
 	let saveState = $state<SaveState>('ready');
 	let hasCredentials = $state<boolean | null>(null); // null = checking, true = has creds, false = missing creds
 	let countdown = $state(3); // Countdown timer for when done
+	let waitForScrape = $state(true); // Default to true, will be loaded from preferences
 
 	function handleBack() {
 		// If we're in the middle of saving, don't allow going back
@@ -28,7 +29,9 @@
 
 	async function checkCredentials() {
 		try {
-			const { serverUrl, apiToken } = await getPreferences();
+			const preferences = await getPreferences();
+			const { serverUrl, apiToken } = preferences;
+			waitForScrape = preferences.waitForScrape ?? true;
 			hasCredentials = !!(serverUrl && apiToken);
 		} catch (error) {
 			console.error('Error checking credentials:', error);
@@ -62,7 +65,8 @@
 		saveState = 'saving';
 
 		try {
-			const { serverUrl, apiToken } = await getPreferences();
+			const preferences = await getPreferences();
+			const { serverUrl, apiToken, waitForScrape } = preferences;
 
 			if (!serverUrl || !apiToken) {
 				alert('Please set your server URL and API token in settings.');
@@ -73,31 +77,45 @@
 			const api = new ReadeckApi({ baseUrl: serverUrl, apiKey: apiToken });
 			const bookmarkData = { url, title };
 			const response = await api.createBookmark(bookmarkData);
+
 			if (response) {
 				saveState = 'saved';
 
-				// Check the bookmark loading state with delay
-				const checkBookmarkLoaded = async (): Promise<void> => {
-					const bookmarkResponse = await api.getBookmark(response.bookmarkId);
-					if (bookmarkResponse.loaded === false) {
-						// Wait 1 second before checking again
-						setTimeout(() => checkBookmarkLoaded(), 1000);
-					} else {
-						saveState = 'done';
-						// Start countdown and finish the intent when it reaches 0
-						countdown = 3;
-						const countdownInterval = setInterval(() => {
-							countdown--;
-							if (countdown <= 0) {
-								clearInterval(countdownInterval);
-								SendIntent.finish();
-							}
-						}, 1000);
-					}
-				};
+				if (waitForScrape) {
+					// Wait for scraping to complete (current behavior)
+					const checkBookmarkLoaded = async (): Promise<void> => {
+						const bookmarkResponse = await api.getBookmark(response.bookmarkId);
+						if (bookmarkResponse.loaded === false) {
+							// Wait 1 second before checking again
+							setTimeout(() => checkBookmarkLoaded(), 1000);
+						} else {
+							saveState = 'done';
+							// Start countdown and finish the intent when it reaches 0
+							countdown = 3;
+							const countdownInterval = setInterval(() => {
+								countdown--;
+								if (countdown <= 0) {
+									clearInterval(countdownInterval);
+									SendIntent.finish();
+								}
+							}, 1000);
+						}
+					};
 
-				// Start checking
-				checkBookmarkLoaded();
+					// Start checking
+					checkBookmarkLoaded();
+				} else {
+					// Return immediately without waiting for scraping
+					saveState = 'done';
+					countdown = 3;
+					const countdownInterval = setInterval(() => {
+						countdown--;
+						if (countdown <= 0) {
+							clearInterval(countdownInterval);
+							SendIntent.finish();
+						}
+					}, 1000);
+				}
 			} else {
 				alert('Failed to save bookmark.');
 				saveState = 'ready';
@@ -228,8 +246,27 @@
 							></div>
 							<span class="text-sm text-blue-700">Saving bookmark...</span>
 						{:else if saveState === 'saved'}
-							<div class="h-4 w-4 animate-pulse rounded-full bg-orange-500"></div>
-							<span class="text-sm text-blue-700">Processing content...</span>
+							{#if waitForScrape}
+								<div class="h-4 w-4 animate-pulse rounded-full bg-orange-500"></div>
+								<span class="text-sm text-blue-700">Processing content...</span>
+							{:else}
+								<div class="flex h-4 w-4 items-center justify-center rounded-full bg-green-500">
+									<svg
+										class="h-3 w-3 text-white"
+										fill="none"
+										stroke="currentColor"
+										viewBox="0 0 24 24"
+									>
+										<path
+											stroke-linecap="round"
+											stroke-linejoin="round"
+											stroke-width="3"
+											d="M5 13l4 4L19 7"
+										/>
+									</svg>
+								</div>
+								<span class="text-sm text-green-700">Bookmark saved!</span>
+							{/if}
 						{:else if saveState === 'done'}
 							<div class="flex h-4 w-4 items-center justify-center rounded-full bg-green-500">
 								<svg

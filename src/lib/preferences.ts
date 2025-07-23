@@ -7,6 +7,8 @@ export interface UserPreferences {
 	username?: string;
 	password?: string;
 	authMethod?: 'token' | 'credentials';
+	// Bookmark creation behavior
+	waitForScrape?: boolean; // true = wait for scraping, false = immediate return
 }
 
 /**
@@ -21,15 +23,17 @@ export async function getPreferences(): Promise<UserPreferences> {
 	const usernameResult = Preferences.get({ key: 'username' });
 	const passwordResult = Preferences.get({ key: 'password' });
 	const authMethodResult = Preferences.get({ key: 'authMethod' });
-
-	const [serverUrl, apiToken, username, password, authMethod] = await Promise.all([
-		serverUrlResult,
-		apiTokenResult,
-		usernameResult,
-		passwordResult,
-		authMethodResult
+	const waitForScrapeResult = Preferences.get({ key: 'waitForScrape' });
+	
+	const [serverUrl, apiToken, username, password, authMethod, waitForScrape] = await Promise.all([
+		serverUrlResult, 
+		apiTokenResult, 
+		usernameResult, 
+		passwordResult, 
+		authMethodResult,
+		waitForScrapeResult
 	]);
-
+	
 	if (!serverUrl.value || !apiToken.value) {
 		throw new Error('Preferences not set. Please configure the server URL and API token.');
 	}
@@ -39,7 +43,8 @@ export async function getPreferences(): Promise<UserPreferences> {
 		apiToken: apiToken.value,
 		username: username.value || undefined,
 		password: password.value || undefined,
-		authMethod: (authMethod.value as 'token' | 'credentials') || 'token'
+		authMethod: (authMethod.value as 'token' | 'credentials') || 'token',
+		waitForScrape: waitForScrape.value !== null ? waitForScrape.value === 'true' : true // Default to true
 	};
 }
 
@@ -52,7 +57,8 @@ export async function setPreferences(preferences: UserPreferences): Promise<void
 	const promises = [
 		Preferences.set({ key: 'serverUrl', value: preferences.serverUrl }),
 		Preferences.set({ key: 'apiToken', value: preferences.apiToken }),
-		Preferences.set({ key: 'authMethod', value: preferences.authMethod || 'token' })
+		Preferences.set({ key: 'authMethod', value: preferences.authMethod || 'token' }),
+		Preferences.set({ key: 'waitForScrape', value: String(preferences.waitForScrape ?? true) })
 	];
 
 	// Only store username/password if provided and using credentials auth method
