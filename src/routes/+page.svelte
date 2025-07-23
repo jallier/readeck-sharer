@@ -37,17 +37,12 @@
 		<div class="rounded-xl border border-gray-100 bg-white p-8 shadow-lg">
 			<!-- Header Section -->
 			<div class="mb-8 text-center">
-				<div
-					class="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600"
-				>
-					<svg class="h-8 w-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-						<path
-							stroke-linecap="round"
-							stroke-linejoin="round"
-							stroke-width="2"
-							d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.367 2.684 3 3 0 00-5.367-2.684z"
-						/>
-					</svg>
+				<div class="mx-auto mb-4 flex h-16 w-16 items-center justify-center">
+					<img 
+						src="/icon-only.png" 
+						alt="Readeck Sharer Icon" 
+						class="h-16 w-16 rounded-2xl shadow-lg"
+					/>
 				</div>
 				<h1 class="mb-2 text-3xl font-bold text-gray-900">Readeck Sharer</h1>
 				<p class="text-lg text-gray-600">Share articles and links to your Readeck library</p>

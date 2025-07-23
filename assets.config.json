@@ -1,0 +1,27 @@
+{
+  "platforms": {
+    "android": {
+      "icon": {
+        "sources": [
+          {
+            "src": "icons/icon-512.webp",
+            "background": "#FFFFFF",
+            "foreground": "icons/icon-512.webp"
+          }
+        ]
+      },
+      "adaptiveIcon": {
+        "foreground": {
+          "sources": [
+            {
+              "src": "icons/icon-512.webp"
+            }
+          ]
+        },
+        "background": {
+          "color": "#FFFFFF"
+        }
+      }
+    }
+  }
+}

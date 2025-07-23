@@ -15,6 +15,7 @@
 		"app:run": "npm run build && npx cap sync && npx cap run android"
 	},
 	"devDependencies": {
+		"@capacitor/assets": "^3.0.5",
 		"@eslint/compat": "^1.2.5",
 		"@eslint/js": "^9.18.0",
 		"@sveltejs/adapter-static": "^3.0.8",

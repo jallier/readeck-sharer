@@ -3,6 +3,7 @@
 - [ ] get a proper icon and splash screen
 - [ ] build for release
 - [ ] allow login with user credentials instead of requiring an API token
+- [ ] add setting for wait for scrape or immediate return when saving the article
 - [ ] page transitions
 - [ ] overhaul styles to match the main app
 
