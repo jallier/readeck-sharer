@@ -2,7 +2,7 @@
 - [x] show feedback on what readeck is doing on the add screen, like the extension
 - [x] get a proper icon and splash screen
 - [x] build for release
-- [ ] BUG: allow hitting back button from share screen
+- [x] BUG: allow hitting back button from share screen
 - [ ] update countdown live after share
 - [ ] rewrite readme to describe project correctly
 - [ ] allow login with user credentials instead of requiring an API token

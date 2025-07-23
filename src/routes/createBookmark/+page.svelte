@@ -1,6 +1,9 @@
 <script lang="ts">
 	import { page } from '$app/state';
+	import { onMount } from 'svelte';
 	import { SendIntent } from 'send-intent';
+	import { App } from '@capacitor/app';
+	import type { PluginListenerHandle } from '@capacitor/core';
 	import ReadeckApi from '$lib/ReadeckApi';
 	import { getPreferences } from '$lib/preferences';
 
@@ -10,6 +13,36 @@
 	let title = $state(page.url.searchParams.get('title') || '');
 
 	let saveState = $state<SaveState>('ready');
+
+	function handleBack() {
+		// If we're in the middle of saving, don't allow going back
+		if (saveState === 'saving' || saveState === 'saved') {
+			return;
+		}
+
+		// If we go back from this screen, we should just kill the app since you can only get here from the share intent
+		App.exitApp();
+	}
+
+	// Handle hardware back button on Android
+	onMount(() => {
+		let backButtonListener: PluginListenerHandle | null = null;
+
+		const setupListener = async () => {
+			backButtonListener = await App.addListener('backButton', () => {
+				handleBack();
+			});
+		};
+
+		setupListener();
+
+		// Cleanup listener on component destroy
+		return () => {
+			if (backButtonListener) {
+				backButtonListener.remove();
+			}
+		};
+	});
 
 	async function handleSave() {
 		console.log('Save clicked! URL:', url, title);
@@ -62,7 +95,26 @@
 <div class="min-h-screen bg-gray-50 p-4">
 	<div class="mx-auto max-w-md">
 		<div class="rounded-lg bg-white p-6 shadow-md">
-			<h1 class="mb-6 text-2xl font-bold text-gray-900">Create Bookmark</h1>
+			<!-- Header with back button -->
+			<div class="mb-6 flex items-center">
+				<button
+					onclick={handleBack}
+					class="mr-3 flex h-10 w-10 items-center justify-center rounded-full text-gray-600 hover:bg-gray-100 focus:bg-gray-100 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50"
+					disabled={saveState === 'saving' || saveState === 'saved'}
+					aria-label="Go back"
+					title="Go back"
+				>
+					<svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+						<path
+							stroke-linecap="round"
+							stroke-linejoin="round"
+							stroke-width="2"
+							d="M15 19l-7-7 7-7"
+						/>
+					</svg>
+				</button>
+				<h1 class="text-2xl font-bold text-gray-900">Create Bookmark</h1>
+			</div>
 
 			<div class="mb-6">
 				<label for="url" class="mb-2 block text-sm font-medium text-gray-700">URL</label>
