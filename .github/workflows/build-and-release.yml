@@ -48,18 +48,23 @@ jobs:
 
       # Step 8: Setup keystore for signing (if secrets are available)
       - name: Setup keystore
-        if: ${{ secrets.KEYSTORE_FILE != '' }}
+        if: ${{ env.KEYSTORE_FILE != '' }}
         run: |
           # Decode base64 keystore and save it
-          echo "${{ secrets.KEYSTORE_FILE }}" | base64 -d > android/readeck-sharer-release-key.keystore
+          echo "$KEYSTORE_FILE" | base64 -d > android/readeck-sharer-release-key.keystore
           
           # Create key.properties file
           cat > android/key.properties << EOF
-          storePassword=${{ secrets.KEYSTORE_PASSWORD }}
-          keyPassword=${{ secrets.KEY_PASSWORD }}
-          keyAlias=${{ secrets.KEY_ALIAS }}
+          storePassword=$KEYSTORE_PASSWORD
+          keyPassword=$KEY_PASSWORD
+          keyAlias=$KEY_ALIAS
           storeFile=../readeck-sharer-release-key.keystore
           EOF
+        env:
+          KEYSTORE_FILE: ${{ secrets.KEYSTORE_FILE }}
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
 
       # Step 9: Make gradlew executable
       - name: Make gradlew executable
