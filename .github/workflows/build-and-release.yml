@@ -1,0 +1,235 @@
+name: Build and Release
+
+on:
+  push:
+    branches: [main, master]
+    tags: ['v*']
+  pull_request:
+    branches: [main, master]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    
+    steps:
+      # Step 1: Checkout code
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # Step 2: Setup Node.js
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      # Step 3: Install dependencies
+      - name: Install dependencies
+        run: npm ci
+
+      # Step 4: Build web app
+      - name: Build web app
+        run: npm run build
+
+      # Step 5: Setup Java for Android build
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      # Step 6: Setup Android SDK
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      # Step 7: Sync Capacitor
+      - name: Sync Capacitor
+        run: npx cap sync android
+
+      # Step 8: Setup keystore for signing (if secrets are available)
+      - name: Setup keystore
+        if: ${{ secrets.KEYSTORE_FILE != '' }}
+        run: |
+          # Decode base64 keystore and save it
+          echo "${{ secrets.KEYSTORE_FILE }}" | base64 -d > android/readeck-sharer-release-key.keystore
+          
+          # Create key.properties file
+          cat > android/key.properties << EOF
+          storePassword=${{ secrets.KEYSTORE_PASSWORD }}
+          keyPassword=${{ secrets.KEY_PASSWORD }}
+          keyAlias=${{ secrets.KEY_ALIAS }}
+          storeFile=../readeck-sharer-release-key.keystore
+          EOF
+
+      # Step 9: Make gradlew executable
+      - name: Make gradlew executable
+        run: chmod +x android/gradlew
+
+      # Step 10: Build Android APK
+      - name: Build Android APK
+        run: |
+          cd android
+          if [ -f "key.properties" ]; then
+            echo "Building signed release APK"
+            ./gradlew assembleRelease
+          else
+            echo "No keystore found, building debug APK"
+            ./gradlew assembleDebug
+            # Copy debug APK to release location for consistency
+            cp app/build/outputs/apk/debug/app-debug.apk app/build/outputs/apk/release/app-release.apk
+          fi
+
+      # Step 11: Rename APK
+      - name: Rename APK
+        run: |
+          # Find the actual APK file (could be release or debug)
+          APK_FILE=$(find android/app/build/outputs/apk -name "*.apk" -type f | head -1)
+          
+          if [ "${{ github.event_name }}" == "push" ] && [[ "${{ github.ref }}" == refs/tags/* ]]; then
+            # For tags, use the tag name
+            TAG_NAME=${GITHUB_REF#refs/tags/}
+            cp "$APK_FILE" readeck-sharer-${TAG_NAME}.apk
+          else
+            # For commits, use short commit hash
+            SHORT_SHA=${GITHUB_SHA:0:8}
+            cp "$APK_FILE" readeck-sharer-${SHORT_SHA}.apk
+          fi
+
+      # Step 11: Upload APK as artifact (for all builds)
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: readeck-sharer-apk
+          path: readeck-sharer-*.apk
+          retention-days: 30
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/tags/'))
+    
+    steps:
+      # Step 1: Checkout code
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # Step 2: Download APK artifact
+      - name: Download APK artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: readeck-sharer-apk
+
+      # Step 3: Create release for tags
+      - name: Create GitHub Release (Tags)
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v1
+        with:
+          files: readeck-sharer-*.apk
+          tag_name: ${{ github.ref_name }}
+          name: "Readeck Sharer ${{ github.ref_name }}"
+          body: |
+            ## Readeck Sharer Release
+            
+            **Version:** ${{ github.ref_name }}
+            **Commit:** ${{ github.sha }}
+            **Build:** #${{ github.run_number }}
+            
+            ### Changes
+            - Built from commit: ${{ github.sha }}
+            - Build date: ${{ github.event.head_commit.timestamp }}
+            
+            ### Installation
+            Download the APK file and install it on your Android device.
+            Make sure to enable "Install from unknown sources" in your device settings.
+            
+            ### What's Changed
+            See the commit history for detailed changes in this release.
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # Step 4: Create/Update latest release for main branch pushes
+      - name: Create/Update Latest Release (Main Branch)
+        if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
+        uses: softprops/action-gh-release@v1
+        with:
+          files: readeck-sharer-*.apk
+          tag_name: "latest"
+          name: "Readeck Sharer (Latest Build)"
+          body: |
+            ## Readeck Sharer - Latest Development Build
+            
+            **Version:** Development Build
+            **Commit:** ${{ github.sha }}
+            **Build:** #${{ github.run_number }}
+            **Branch:** ${{ github.ref_name }}
+            
+            ### Changes
+            - Built from latest commit: ${{ github.sha }}
+            - Build date: ${{ github.event.head_commit.timestamp }}
+            - Commit message: ${{ github.event.head_commit.message }}
+            
+            ### Installation
+            Download the APK file and install it on your Android device.
+            Make sure to enable "Install from unknown sources" in your device settings.
+            
+            ⚠️ **Note:** This is a development build from the latest code. 
+            It may contain experimental features or bugs.
+            
+            ### Recent Changes
+            ${{ github.event.head_commit.message }}
+          draft: false
+          prerelease: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  # Job for pull request builds (build only, no release)
+  build-pr:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build web app
+        run: npm run build
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Sync Capacitor
+        run: npx cap sync android
+
+      - name: Make gradlew executable
+        run: chmod +x android/gradlew
+
+      - name: Build Android APK
+        run: |
+          cd android
+          # For PRs, always build debug APK (no signing needed)
+          ./gradlew assembleDebug
+
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: readeck-sharer-pr-${{ github.event.number }}
+          path: android/app/build/outputs/apk/debug/app-debug.apk
+          retention-days: 7
+

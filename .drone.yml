@@ -1,0 +1,176 @@
+kind: pipeline
+type: docker
+name: build-and-release
+
+steps:
+  # Step 1: Install Node.js dependencies
+  - name: install-dependencies
+    image: node:20-alpine
+    commands:
+      - npm ci
+
+  # Step 2: Build the web app
+  - name: build-web
+    image: node:20-alpine
+    commands:
+      - npm run build
+    depends_on:
+      - install-dependencies
+
+  # Step 3: Sync Capacitor
+  - name: sync-capacitor
+    image: node:20-alpine
+    commands:
+      - npx cap sync android
+    depends_on:
+      - build-web
+
+  # Step 4: Build Android APK
+  - name: build-android
+    image: gradle:8-jdk17
+    environment:
+      ANDROID_HOME: /opt/android-sdk
+      ANDROID_SDK_ROOT: /opt/android-sdk
+      KEYSTORE_FILE:
+        from_secret: keystore_file
+      KEYSTORE_PASSWORD:
+        from_secret: keystore_password
+      KEY_PASSWORD:
+        from_secret: key_password
+      KEY_ALIAS:
+        from_secret: key_alias
+    commands:
+      # Install Android SDK components
+      - apt-get update && apt-get install -y wget unzip
+      - mkdir -p /opt/android-sdk/cmdline-tools
+      - cd /opt/android-sdk/cmdline-tools
+      - wget https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip
+      - unzip commandlinetools-linux-*.zip
+      - mv cmdline-tools latest
+      - export PATH=$PATH:/opt/android-sdk/cmdline-tools/latest/bin
+      - yes | sdkmanager --licenses
+      - sdkmanager "platform-tools" "platforms;android-34" "build-tools;34.0.0"
+      # Setup keystore if secrets are available
+      - |
+        if [ -n "$KEYSTORE_FILE" ]; then
+          echo "Setting up keystore for signed build"
+          echo "$KEYSTORE_FILE" | base64 -d > android/readeck-sharer-release-key.keystore
+          cat > android/key.properties << EOF
+        storePassword=$KEYSTORE_PASSWORD
+        keyPassword=$KEY_PASSWORD
+        keyAlias=$KEY_ALIAS
+        storeFile=../readeck-sharer-release-key.keystore
+        EOF
+        else
+          echo "No keystore configured, will build debug APK"
+        fi
+      # Build the APK
+      - cd android
+      - |
+        if [ -f "key.properties" ]; then
+          echo "Building signed release APK"
+          ./gradlew assembleRelease
+          APK_PATH="app/build/outputs/apk/release/app-release.apk"
+        else
+          echo "Building debug APK"
+          ./gradlew assembleDebug
+          APK_PATH="app/build/outputs/apk/debug/app-debug.apk"
+        fi
+        # Copy APK to workspace root for easy access
+        cp "$APK_PATH" ../readeck-sharer-${DRONE_TAG:-${DRONE_COMMIT:0:8}}.apk
+    depends_on:
+      - sync-capacitor
+
+  # Step 5: Create Gitea release and upload APK
+  - name: gitea-release
+    image: plugins/gitea-release
+    settings:
+      api_key:
+        from_secret: gitea_token
+      base_url:
+        from_secret: gitea_url
+      files:
+        - readeck-sharer-*.apk
+      title: "Readeck Sharer ${DRONE_TAG:-v${DRONE_BUILD_NUMBER}}"
+      note: |
+        ## Readeck Sharer Release
+        
+        **Version:** ${DRONE_TAG:-v${DRONE_BUILD_NUMBER}}
+        **Commit:** ${DRONE_COMMIT}
+        **Build:** #${DRONE_BUILD_NUMBER}
+        
+        ### Changes
+        - Built from commit: ${DRONE_COMMIT}
+        - Build date: ${DRONE_BUILD_FINISHED}
+        
+        ### Installation
+        Download the APK file and install it on your Android device.
+        Make sure to enable "Install from unknown sources" in your device settings.
+    depends_on:
+      - build-android
+    when:
+      event:
+        - tag
+        - push
+      branch:
+        - main
+        - master
+
+trigger:
+  event:
+    - push
+    - tag
+  branch:
+    - main
+    - master
+
+---
+# Alternative pipeline for pull requests (build only, no release)
+kind: pipeline
+type: docker
+name: build-pr
+
+steps:
+  - name: install-dependencies
+    image: node:20-alpine
+    commands:
+      - npm ci
+
+  - name: build-web
+    image: node:20-alpine
+    commands:
+      - npm run build
+    depends_on:
+      - install-dependencies
+
+  - name: sync-capacitor
+    image: node:20-alpine
+    commands:
+      - npx cap sync android
+    depends_on:
+      - build-web
+
+  - name: build-android
+    image: gradle:8-jdk17
+    environment:
+      ANDROID_HOME: /opt/android-sdk
+      ANDROID_SDK_ROOT: /opt/android-sdk
+    commands:
+      - apt-get update && apt-get install -y wget unzip
+      - mkdir -p /opt/android-sdk/cmdline-tools
+      - cd /opt/android-sdk/cmdline-tools
+      - wget https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip
+      - unzip commandlinetools-linux-*.zip
+      - mv cmdline-tools latest
+      - export PATH=$PATH:/opt/android-sdk/cmdline-tools/latest/bin
+      - yes | sdkmanager --licenses
+      - sdkmanager "platform-tools" "platforms;android-34" "build-tools;34.0.0"
+      # For PRs, always build debug APK (no signing needed)
+      - cd android
+      - ./gradlew assembleDebug
+    depends_on:
+      - sync-capacitor
+
+trigger:
+  event:
+    - pull_request
