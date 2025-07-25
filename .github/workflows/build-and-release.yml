@@ -31,6 +31,15 @@ jobs:
       - name: Build web app
         run: npm run build
 
+      # Step 4.5: Cache build output
+      - name: Cache build output
+        uses: actions/cache@v4
+        with:
+          path: build
+          key: ${{ runner.os }}-build-${{ hashFiles('src/**', 'static/**', 'package.json', 'svelte.config.js', 'vite.config.ts') }}
+          restore-keys: |
+            ${{ runner.os }}-build-
+
       # Step 5: Setup Java for Android build
       - name: Setup Java
         uses: actions/setup-java@v4
@@ -41,6 +50,29 @@ jobs:
       # Step 6: Setup Android SDK
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
+
+      # Step 6.5: Cache Gradle dependencies
+      - name: Cache Gradle dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+            android/.gradle
+          key: ${{ runner.os }}-gradle-${{ hashFiles('android/**/*.gradle*', 'android/gradle/wrapper/gradle-wrapper.properties') }}
+          restore-keys: |
+            ${{ runner.os }}-gradle-
+
+      # Step 6.6: Cache Android SDK
+      - name: Cache Android SDK
+        uses: actions/cache@v4
+        with:
+          path: |
+            ${{ env.ANDROID_SDK_ROOT }}
+            ${{ env.ANDROID_HOME }}
+          key: ${{ runner.os }}-android-sdk-${{ hashFiles('android/variables.gradle') }}
+          restore-keys: |
+            ${{ runner.os }}-android-sdk-
 
       # Step 7: Sync Capacitor
       - name: Sync Capacitor
@@ -80,7 +112,8 @@ jobs:
           else
             echo "No keystore found, building debug APK"
             ./gradlew assembleDebug
-            # Copy debug APK to release location for consistency
+            # Create release directory and copy debug APK for consistency
+            mkdir -p app/build/outputs/apk/release
             cp app/build/outputs/apk/debug/app-debug.apk app/build/outputs/apk/release/app-release.apk
           fi
 
@@ -218,6 +251,25 @@ jobs:
 
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
+
+      - name: Cache Gradle dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+            android/.gradle
+          key: ${{ runner.os }}-gradle-${{ hashFiles('android/**/*.gradle*', 'android/gradle/wrapper/gradle-wrapper.properties') }}
+          restore-keys: |
+            ${{ runner.os }}-gradle-
+
+      - name: Cache build output
+        uses: actions/cache@v4
+        with:
+          path: build
+          key: ${{ runner.os }}-build-${{ hashFiles('src/**', 'static/**', 'package.json', 'svelte.config.js', 'vite.config.ts') }}
+          restore-keys: |
+            ${{ runner.os }}-build-
 
       - name: Sync Capacitor
         run: npx cap sync android
