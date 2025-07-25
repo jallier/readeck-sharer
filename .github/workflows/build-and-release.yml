@@ -1,5 +1,10 @@
 name: Build and Release
 
+# Add permissions for the workflow
+permissions:
+  contents: write
+  packages: write
+
 on:
   push:
     branches: [main, master]
@@ -193,7 +198,7 @@ jobs:
         uses: softprops/action-gh-release@v1
         with:
           files: readeck-sharer-*.apk
-          tag_name: "latest"
+          tag_name: "latest-dev"
           name: "Readeck Sharer (Latest Build)"
           body: |
             ## Readeck Sharer - Latest Development Build
@@ -219,6 +224,7 @@ jobs:
             ${{ github.event.head_commit.message }}
           draft: false
           prerelease: true
+          make_latest: false
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
