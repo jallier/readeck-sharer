@@ -27,7 +27,7 @@ steps:
 
   # Step 4: Build Android APK
   - name: build-android
-    image: gradle:8-jdk17
+    image: gradle:8-jdk21
     environment:
       ANDROID_HOME: /opt/android-sdk
       ANDROID_SDK_ROOT: /opt/android-sdk
@@ -151,7 +151,7 @@ steps:
       - build-web
 
   - name: build-android
-    image: gradle:8-jdk17
+    image: gradle:8-jdk21
     environment:
       ANDROID_HOME: /opt/android-sdk
       ANDROID_SDK_ROOT: /opt/android-sdk
