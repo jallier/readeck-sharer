@@ -9,4 +9,3 @@
 - [x] add setting for wait for scrape or immediate return when saving the article
 - [ ] page transitions
 - [ ] overhaul styles to match the main app
-

@@ -15,7 +15,7 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-    
+
     steps:
       # Step 1: Checkout code
       - name: Checkout code
@@ -89,7 +89,7 @@ jobs:
         run: |
           # Decode base64 keystore and save it
           echo "$KEYSTORE_FILE" | base64 -d > android/readeck-sharer-release-key.keystore
-          
+
           # Create key.properties file
           cat > android/key.properties << EOF
           storePassword=$KEYSTORE_PASSWORD
@@ -127,7 +127,7 @@ jobs:
         run: |
           # Find the actual APK file (could be release or debug)
           APK_FILE=$(find android/app/build/outputs/apk -name "*.apk" -type f | head -1)
-          
+
           if [ "${{ github.event_name }}" == "push" ] && [[ "${{ github.ref }}" == refs/tags/* ]]; then
             # For tags, use the tag name
             TAG_NAME=${GITHUB_REF#refs/tags/}
@@ -150,7 +150,7 @@ jobs:
     needs: build
     runs-on: ubuntu-latest
     if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/tags/'))
-    
+
     steps:
       # Step 1: Checkout code
       - name: Checkout code
@@ -169,22 +169,22 @@ jobs:
         with:
           files: readeck-sharer-*.apk
           tag_name: ${{ github.ref_name }}
-          name: "Readeck Sharer ${{ github.ref_name }}"
+          name: 'Readeck Sharer ${{ github.ref_name }}'
           body: |
             ## Readeck Sharer Release
-            
+
             **Version:** ${{ github.ref_name }}
             **Commit:** ${{ github.sha }}
             **Build:** #${{ github.run_number }}
-            
+
             ### Changes
             - Built from commit: ${{ github.sha }}
             - Build date: ${{ github.event.head_commit.timestamp }}
-            
+
             ### Installation
             Download the APK file and install it on your Android device.
             Make sure to enable "Install from unknown sources" in your device settings.
-            
+
             ### What's Changed
             See the commit history for detailed changes in this release.
           draft: false
@@ -198,28 +198,28 @@ jobs:
         uses: softprops/action-gh-release@v1
         with:
           files: readeck-sharer-*.apk
-          tag_name: "latest-dev"
-          name: "Readeck Sharer (Latest Build)"
+          tag_name: 'latest-dev'
+          name: 'Readeck Sharer (Latest Build)'
           body: |
             ## Readeck Sharer - Latest Development Build
-            
+
             **Version:** Development Build
             **Commit:** ${{ github.sha }}
             **Build:** #${{ github.run_number }}
             **Branch:** ${{ github.ref_name }}
-            
+
             ### Changes
             - Built from latest commit: ${{ github.sha }}
             - Build date: ${{ github.event.head_commit.timestamp }}
             - Commit message: ${{ github.event.head_commit.message }}
-            
+
             ### Installation
             Download the APK file and install it on your Android device.
             Make sure to enable "Install from unknown sources" in your device settings.
-            
+
             ⚠️ **Note:** This is a development build from the latest code. 
             It may contain experimental features or bugs.
-            
+
             ### Recent Changes
             ${{ github.event.head_commit.message }}
           draft: false
@@ -232,7 +232,7 @@ jobs:
   build-pr:
     runs-on: ubuntu-latest
     if: github.event_name == 'pull_request'
-    
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -295,4 +295,3 @@ jobs:
           name: readeck-sharer-pr-${{ github.event.number }}
           path: android/app/build/outputs/apk/debug/app-debug.apk
           retention-days: 7
-

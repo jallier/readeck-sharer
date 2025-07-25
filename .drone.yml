@@ -91,18 +91,18 @@ steps:
         from_secret: gitea_url
       files:
         - readeck-sharer-*.apk
-      title: "Readeck Sharer ${DRONE_TAG:-v${DRONE_BUILD_NUMBER}}"
+      title: 'Readeck Sharer ${DRONE_TAG:-v${DRONE_BUILD_NUMBER}}'
       note: |
         ## Readeck Sharer Release
-        
+
         **Version:** ${DRONE_TAG:-v${DRONE_BUILD_NUMBER}}
         **Commit:** ${DRONE_COMMIT}
         **Build:** #${DRONE_BUILD_NUMBER}
-        
+
         ### Changes
         - Built from commit: ${DRONE_COMMIT}
         - Build date: ${DRONE_BUILD_FINISHED}
-        
+
         ### Installation
         Download the APK file and install it on your Android device.
         Make sure to enable "Install from unknown sources" in your device settings.
