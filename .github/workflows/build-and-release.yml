@@ -192,26 +192,26 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      # Step 4: Create/Update latest release for main branch pushes
-      - name: Create/Update Latest Release (Main Branch)
+      # Step 4: Create new release for each main branch push
+      - name: Create New Development Release (Main Branch)
         if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
         uses: softprops/action-gh-release@v1
         with:
           files: readeck-sharer-*.apk
-          tag_name: 'latest-dev'
-          name: 'Readeck Sharer (Latest Build)'
+          tag_name: 'dev-build-${{ github.run_number }}-${{ github.sha }}'
+          name: 'Readeck Sharer Dev Build #${{ github.run_number }}'
           body: |
-            ## Readeck Sharer - Latest Development Build
+            ## Readeck Sharer - Development Build #${{ github.run_number }}
 
-            **Version:** Development Build
+            **Version:** Development Build #${{ github.run_number }}
             **Commit:** ${{ github.sha }}
-            **Build:** #${{ github.run_number }}
             **Branch:** ${{ github.ref_name }}
+            **Build Date:** ${{ github.event.head_commit.timestamp }}
 
-            ### Changes
-            - Built from latest commit: ${{ github.sha }}
-            - Build date: ${{ github.event.head_commit.timestamp }}
-            - Commit message: ${{ github.event.head_commit.message }}
+            ### Changes in this build
+            - **Commit:** ${{ github.sha }}
+            - **Message:** ${{ github.event.head_commit.message }}
+            - **Author:** ${{ github.event.head_commit.author.name }}
 
             ### Installation
             Download the APK file and install it on your Android device.
@@ -220,8 +220,9 @@ jobs:
             ⚠️ **Note:** This is a development build from the latest code. 
             It may contain experimental features or bugs.
 
-            ### Recent Changes
-            ${{ github.event.head_commit.message }}
+            ### Download
+            - **APK File:** `readeck-sharer-${{ github.sha }}.apk` (or similar)
+            - **Size:** Available after download
           draft: false
           prerelease: true
           make_latest: false

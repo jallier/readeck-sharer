@@ -4,7 +4,11 @@ A mobile app for quickly sharing articles and links to your [Readeck](https://re
 
 This app is just a simple stopgap to make sending articles to readeck from your phone easier, using the native android share menu.
 
+You can find the current .apk build here: [Releases](https://github.com/jallier/readeck-sharer/releases)
+
 ## Development Setup
+
+This app is a pretty simple Sveltekit and Capacitor app, so if you get stuck (especially with Capacitor), following their respective docs should get you most of the way there.
 
 ### Prerequisites
 
@@ -17,7 +21,7 @@ Before you can develop this app, you'll need:
 2. **Android Development Environment:**
    - **Android Studio** - Download from [developer.android.com](https://developer.android.com/studio)
    - **Android SDK** (installed via Android Studio)
-   - **Java JDK 17** (Android Studio can install this for you)
+   - **Java JDK 21** (Android Studio can install this for you)
 
 3. **Capacitor CLI:**
 
@@ -46,10 +50,14 @@ Before you can develop this app, you'll need:
    ```
 
 3. **Verify Android setup:**
+
    ```bash
    npx cap doctor android
    ```
+
    This will check if your Android environment is properly configured.
+
+   Note that you may need to set your java path to match the one that android studio uses. Otherwise, just build it in android studio directly.
 
 ### Development Workflow
 
