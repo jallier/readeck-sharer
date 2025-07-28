@@ -1,6 +1,8 @@
 <script lang="ts">
   import { SendIntent } from 'send-intent';
-  import { getPreferences } from '../lib/preferences';
+  import type { PageProps } from './$types';
+
+  let { data }: PageProps = $props();
 
   SendIntent.checkSendIntentReceived()
     .then((result) => {
@@ -16,18 +18,7 @@
       console.log('SendIntent check finished');
     });
 
-  async function isReady() {
-    try {
-      await getPreferences();
-      isReadyToUse = true;
-    } catch (error) {
-      console.error('Error loading preferences:', error);
-      isReadyToUse = false;
-    }
-  }
-
-  let isReadyToUse = $state(false);
-  isReady();
+  let isReadyToUse = $derived(data.preferences !== false);
 </script>
 
 <div

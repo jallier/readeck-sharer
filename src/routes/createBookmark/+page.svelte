@@ -5,7 +5,6 @@
   import { App } from '@capacitor/app';
   import type { PluginListenerHandle } from '@capacitor/core';
   import ReadeckApi from '$lib/ReadeckApi';
-  import { getPreferences } from '$lib/preferences';
 
   type SaveState = 'ready' | 'saving' | 'saved' | 'done';
 
@@ -16,6 +15,9 @@
   let hasCredentials = $state<boolean | null>(null); // null = checking, true = has creds, false = missing creds
   let countdown = $state(3); // Countdown timer for when done
   let waitForScrape = $state(true); // Default to true, will be loaded from preferences
+
+  let { data } = $props();
+  let preferences = $derived(data.preferences);
 
   function handleBack() {
     // If we're in the middle of saving, don't allow going back
@@ -28,15 +30,14 @@
   }
 
   async function checkCredentials() {
-    try {
-      const preferences = await getPreferences();
-      const { serverUrl, apiToken } = preferences;
-      waitForScrape = preferences.waitForScrape ?? true;
-      hasCredentials = !!(serverUrl && apiToken);
-    } catch (error) {
-      console.error('Error checking credentials:', error);
+    if (!preferences) {
       hasCredentials = false;
+      return;
     }
+
+    const { serverUrl, apiToken } = preferences;
+    waitForScrape = preferences.waitForScrape ?? true;
+    hasCredentials = !!(serverUrl && apiToken);
   }
 
   // Handle hardware back button on Android
@@ -65,7 +66,13 @@
     saveState = 'saving';
 
     try {
-      const preferences = await getPreferences();
+      if (!preferences) {
+        console.error('Preferences not loaded');
+        alert('Could not load preferences. Please try again later.');
+        saveState = 'ready';
+        return;
+      }
+
       const { serverUrl, apiToken, waitForScrape } = preferences;
 
       if (!serverUrl || !apiToken) {

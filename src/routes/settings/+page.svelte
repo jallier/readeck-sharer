@@ -1,7 +1,7 @@
 <script lang="ts">
   import { Preferences } from '@capacitor/preferences';
   import ReadeckApi from '$lib/ReadeckApi';
-  import { getPreferences, setPreferences, type UserPreferences } from '$lib/preferences';
+  import { setPreferences, type UserPreferences } from '$lib/preferences';
 
   type SaveStatus = 'success' | 'error' | 'cleared' | 'network-error' | 'login-error' | '';
   type AuthMethod = 'token' | 'credentials';
@@ -15,21 +15,16 @@
   let isLoading = $state(false);
   let saveStatus = $state<SaveStatus>('');
 
-  // Load the saved preferences when component mounts
-  loadPreferences();
-
-  async function loadPreferences() {
-    try {
-      const preferences = await getPreferences();
-      apiToken = preferences.apiToken;
-      serverUrl = preferences.serverUrl;
-      username = preferences.username || '';
-      password = preferences.password || '';
-      authMethod = preferences.authMethod || 'token';
-      waitForScrape = preferences.waitForScrape ?? true;
-    } catch (error) {
-      console.error('Error loading preferences:', error);
-    }
+  let { data } = $props();
+  if (data.preferences === false) {
+    console.error('No preferences found');
+  } else {
+    serverUrl = data.preferences.serverUrl;
+    apiToken = data.preferences.apiToken;
+    username = data.preferences.username || '';
+    password = data.preferences.password || '';
+    authMethod = data.preferences.authMethod || 'token';
+    waitForScrape = data.preferences.waitForScrape ?? true;
   }
 
   async function checkCredentials(serverUrl: string, apiToken: string): Promise<boolean> {
