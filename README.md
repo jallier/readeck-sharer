@@ -6,6 +6,11 @@ This app is just a simple stopgap to make sending articles to readeck from your 
 
 You can find the current .apk build here: [Releases](https://github.com/jallier/readeck-sharer/releases)
 
+<img width="400" height="894" alt="image" src="https://github.com/user-attachments/assets/1eef4144-cf54-4150-baad-d37c7c5c0c4f" />
+<img width="404" height="892" alt="image" src="https://github.com/user-attachments/assets/dcb0199e-cd71-439d-bc10-9e86655a3d0d" />
+
+
+
 ## Development Setup
 
 This app is a pretty simple Sveltekit and Capacitor app, so if you get stuck (especially with Capacitor), following their respective docs should get you most of the way there.
